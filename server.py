@@ -14,10 +14,16 @@ port = 80 if os.getuid() == 0 else 8000
 
 pool = Pool(1, maxtasksperchild=50)
 
-@app.route('/')
+@app.route('/', methods = ['POST', 'GET'])
 def index():
-  q = request.args.get("q", "")
-  result = pool.apply(parse_sentence, [q])
+  data = request.args.get("q", "")
+  if not data:
+      data = request.data
+  print("got something: '%s'" % data)
+  if not data:
+      return Response(status=500, response="error")
+
+  result = pool.apply(parse_sentence, [data])
 
   return Response(
     response=json.dumps(result, indent=2),
@@ -25,5 +31,4 @@ def index():
     content_type="application/json")
 
 if __name__ == '__main__':
-    app.run(debug=True, port=port, host="0.0.0.0")
-
+    app.run(port=port, host="0.0.0.0")
