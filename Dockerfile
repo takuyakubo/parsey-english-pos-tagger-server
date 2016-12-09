@@ -1,4 +1,4 @@
-FROM moddedsyntaxnet2
+FROM andersrye/syntaxnet-forever
 
 RUN pip install flask
 
