@@ -15,16 +15,17 @@ def open_parser_eval(args):
     stdout=subprocess.PIPE
   )
 
-def send_input(process, input):
-  process.stdin.write(input.encode("utf8"))
+def send_input(process, input_str, num_lines):
+  input_str = input_str.encode("utf8")
+  process.stdin.write(input_str)
   process.stdin.write(b"\n\n") # signal end of documents
   process.stdin.flush()
   response = b""
-  while True:
+  while num_lines > 0:
     line = process.stdout.readline()
     if line.strip() == b"":
-      # empty line signals end of response
-      break
+      # empty line signals end of output for one sentence
+      num_lines -= 1
     response += line
   return response.decode("utf8")
 
@@ -70,35 +71,41 @@ def split_tokens(parse):
     del x["unknown3"]
     del x["unknown4"]
     return x
-                                   
+
   return [
     format_token(line)
     for line in parse.strip().split("\n")
   ]
 
-def parse_sentence(sentence):
-  if "\n" in sentence or "\r" in sentence:
-    raise ValueError()
+def magic(split_tokens, sentence):
+    tokens = { tok["index"]: tok for tok in split_tokens }
+    tokens[0] = OrderedDict([ ("sentence", sentence) ])
+    for tok in split_tokens:
+       tokens[tok['parent']]\
+         .setdefault('tree', OrderedDict()) \
+         .setdefault(tok['relation'], []) \
+         .append(tok)
+       del tok['parent']
+       del tok['relation']
+
+    return tokens[0]
+
+def parse_sentence(sentences):
+  sentences = sentences.strip()
+  num_lines = sentences.count("\n") + 1
 
   # Do POS tagging.
-  pos_tags = send_input(pos_tagger, sentence + "\n")
+  pos_tags = send_input(pos_tagger, sentences + "\n", num_lines)
 
   # Do syntax parsing.
-  dependency_parse = send_input(dependency_parser, pos_tags)
+  dependency_parse = send_input(dependency_parser, pos_tags, num_lines)
 
-  # Make a tree.
-  dependency_parse = split_tokens(dependency_parse)
-  tokens = { tok["index"]: tok for tok in dependency_parse }
-  tokens[0] = OrderedDict([ ("sentence", sentence) ])
-  for tok in dependency_parse:
-     tokens[tok['parent']]\
-       .setdefault('tree', OrderedDict()) \
-       .setdefault(tok['relation'], []) \
-       .append(tok)
-     del tok['parent']
-     del tok['relation']
+  # Split and make the trees.
+  dependency_parse_list = dependency_parse.strip().split("\n\n")
+  split_tokens_list = map(split_tokens, dependency_parse_list)
 
-  return tokens[0]
+  # Here be magic
+  return [magic(st, sen) for sen, st in zip(sentences.split("\n"), split_tokens_list)]
 
 
 if __name__ == "__main__":
