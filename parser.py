@@ -39,7 +39,7 @@ pos_tagger = open_parser_eval([
     "--task_context=" + MODEL_DIR + "/context.pbtxt",
     "--model_path=" + MODEL_DIR + "/tagger-params",
     "--slim_model",
-    "--batch_size=1024",
+    "--batch_size=1",
     "--alsologtostderr",
   ])
 
