@@ -1,163 +1,156 @@
-# Parsey McParseface server
+# Parsey Universal Server
 
-A simple Python Flask app to provide Parsey McParseface over HTTP as an API.
-
-Based on https://github.com/JoshData/parsey-mcparseface-server
+A simple Python Flask app to provide Parsey McParseface and its [Cousins](https://github.com/tensorflow/models/blob/master/syntaxnet/universal.md) over HTTP as an API.
 
 ### To run:
 
-Run once on port 7777:
+Run on port 7777:
 
-    $ docker run -it --rm -p 7777:80 andersrye/parsey-mcparseface-server
+    $ docker run -it --rm -p 7777:80 andersrye/parsey-universal-server
+
 or detached:
 
-    $ docker run -d -it --name -p 7777:80 parseyserver andersrye/parsey-mcparseface-server    
+    $ docker run -d -it -p 7777:80 --name parseyserver andersrye/parsey-universal-server    
+
+The default model is English. To select models set the `PARSEY_MODELS` environment variable. Select one or more (comma separated) models of the ones available [here](https://github.com/tensorflow/models/blob/master/syntaxnet/universal.md) (NOTE: must be written exactly as it appears in that list)
+
+    $ docker run -it --rm -p 7777:80 -e PARSEY_MODELS=Latin,English,Greek andersrye/parsey-universal-server
+
+You can also set the batch size if necessary using the `PARSEY_BATCH_SIZE` environment variable (default 1)
 
 ### To build:
 
-    $ git clone https://github.com/andersrye/parsey-mcparseface-server.git
-    $ cd parsey-mcparseface-server
+    $ git clone https://github.com/andersrye/parsey-universal-server.git
+    $ cd parsey-universal-server
     $ docker build -t parseyserver .
     $ docker run -it --rm -p 7777:80 parseyserver
+
+### Demo:
+
+Navigate to http://localhost:7777/demo to view a simple demo.
 
 ### To use:
 
 Post plain text, line separated sentences to it:
 
-    $ curl -H "Content-Type:text/plain" -d "Bob brought the pizza to Alice." http://localhost:7777/
+    $ curl -H "Content-Type:text/plain" --data-binary "Alea iacta est" http://localhost:7777/
 
-Returns a list (!) of JSON trees:
+Returns a list of lists of sentences and words, in what is essentially the [CoNLL-U](http://universaldependencies.org/format.html) format, just in JSON
 
     [
-      {
-        "sentence": "Bob brought the pizza to Alice.",
-        "tree": {
-          "ROOT": [
-            {
-              "index": 2,
-              "token": "brought",
-              "label": "VERB",
-              "pos": "VBD",
-              "tree": {
-                "nsubj": [
-                  {
-                    "index": 1,
-                    "token": "Bob",
-                    "label": "NOUN",
-                    "pos": "NNP"
-                  }
-                ],
-                "dobj": [
-                  {
-                    "index": 4,
-                    "token": "pizza",
-                    "label": "NOUN",
-                    "pos": "NN",
-                    "tree": {
-                      "det": [
-                        {
-                          "index": 3,
-                          "token": "the",
-                          "label": "DET",
-                          "pos": "DT"
-                        }
-                      ]
-                    }
-                  }
-                ],
-                "prep": [
-                  {
-                    "index": 5,
-                    "token": "to",
-                    "label": "ADP",
-                    "pos": "IN",
-                    "tree": {
-                      "pobj": [
-                        {
-                          "index": 6,
-                          "token": "Alice",
-                          "label": "NOUN",
-                          "pos": "NNP"
-                        }
-                      ]
-                    }
-                  }
-                ],
-                "punct": [
-                  {
-                    "index": 7,
-                    "token": ".",
-                    "label": ".",
-                    "pos": "."
-                  }
-                ]
-              }
-            }
-          ]
+      [
+        {
+          "id": 1,
+          "form": "Alea",
+          "upostag": "NOUN",
+          "xpostag": "n-s---fn-",
+          "feats": {
+            "Case": "Nom",
+            "Gender": "Fem",
+            "fPOS": "NOUN++n-s---fn-",
+            "Number": "Sing"
+          },
+          "head": 2,
+          "deprel": "nsubjpass"
+        },
+        {
+          "id": 2,
+          "form": "iacta",
+          "upostag": "VERB",
+          "xpostag": "v-srppfn-",
+          "feats": {
+            "Case": "Nom",
+            "VerbForm": "Part",
+            "Gender": "Fem",
+            "fPOS": "VERB++v-srppfn-",
+            "Number": "Sing",
+            "Tense": "Past",
+            "Aspect": "Perf",
+            "Voice": "Pass"
+          },
+          "head": 0,
+          "deprel": "ROOT"
+        },
+        {
+          "id": 3,
+          "form": "est",
+          "upostag": "VERB",
+          "xpostag": "v3spia---",
+          "feats": {
+            "VerbForm": "Fin",
+            "fPOS": "VERB++v3spia---",
+            "Number": "Sing",
+            "Person": "3",
+            "Tense": "Pres",
+            "Voice": "Act",
+            "Mood": "Ind"
+          },
+          "head": 2,
+          "deprel": "auxpass"
         }
-      }
+      ]
     ]
 
-Or given some sentences.txt:
+The default model is the first one in the `PARSEY_MODELS` list (in this case Latin). To use another, use the `language` query param: (must also match the model name exactly)
 
-    Bob has a burger.
-    Name this boat.
-    Alice sends a message.
-then
+    $ curl -H "Content-Type:text/plain" --data-binary "The die is cast" http://localhost:7777/?language=English
 
-    $ curl -H "Content-Type:text/plain" --data-binary @sentences.txt http://localhost:7777/
-
-gives
+Returns:
 
     [
-      {
-        "sentence": "Bob has a burger.",
-        "tree": {
-          "ROOT": [
-            {
-              "index": 2,
-              "token": "has",
-              "label": "VERB",
-              "pos": "VBZ",
-              "tree": {
-                "nsubj": [
-                  {
-                    "index": 1,
-                    "token": "Bob",
-                    "label": "NOUN",
-                    "pos": "NNP"
-                  }
-                ],
-                "dobj": [
-                  {
-                    "index": 4,
-                    "token": "burger",
-                    "label": "NOUN",
-                    "pos": "NN",
-                    "tree": {
-                      "det": [
-                        {
-                          "index": 3,
-                          "token": "a",
-                          "label": "DET",
-                          "pos": "DT"
-                        }
-                      ]
-                    }
-                  }
-                ],
-                "punct": [
-                  {
-                    "index": 5,
-                    "token": ".",
-                    "label": ".",
-                    "pos": "."
-                  }
-                ]
-              }
-            }
-          ]
+      [
+        {
+          "id": 1,
+          "form": "The",
+          "upostag": "DET",
+          "xpostag": "DT",
+          "feats": {
+            "Definite": "Def",
+            "fPOS": "DET++DT",
+            "PronType": "Art"
+          },
+          "head": 2,
+          "deprel": "det"
+        },
+        {
+          "id": 2,
+          "form": "die",
+          "upostag": "NOUN",
+          "xpostag": "NN",
+          "feats": {
+            "fPOS": "NOUN++NN",
+            "Number": "Sing"
+          },
+          "head": 4,
+          "deprel": "nsubj"
+        },
+        {
+          "id": 3,
+          "form": "is",
+          "upostag": "VERB",
+          "xpostag": "VBZ",
+          "feats": {
+            "Mood": "Ind",
+            "fPOS": "VERB++VBZ",
+            "Number": "Sing",
+            "Person": "3",
+            "Tense": "Pres",
+            "VerbForm": "Fin"
+          },
+          "head": 4,
+          "deprel": "cop"
+        },
+        {
+          "id": 4,
+          "form": "cast",
+          "upostag": "ADJ",
+          "xpostag": "JJ",
+          "feats": {
+            "fPOS": "ADJ++JJ",
+            "Degree": "Pos"
+          },
+          "head": 0,
+          "deprel": "ROOT"
         }
-      },
-      <etc, etc...>
+      ]
     ]

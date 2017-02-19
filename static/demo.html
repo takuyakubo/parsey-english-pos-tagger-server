@@ -1,0 +1,57 @@
+<html>
+<head>
+  <script>
+  var data = [{"sentence": "Bob har en burger", "tree": {"ROOT": [{"index": 2, "token": "har", "label": "VERB", "pos": "_", "tree": {"nsubj": [{"index": 1, "token": "Bob", "label": "NOUN", "pos": "_"}], "dobj": [{"index": 4, "token": "burger", "label": "NOUN", "pos": "_", "tree": {"det": [{"index": 3, "token": "en", "label": "DET", "pos": "_"}]}}]}}]}}]
+  console.log(data)
+
+  //get models:
+
+  var http = new XMLHttpRequest();
+  var url = "../available-models";
+  http.open("GET", url, true);
+  http.onreadystatechange = function() {
+    if(http.readyState == 4 && http.status == 200) {
+      var select = document.getElementById("selectModel");
+      var options = JSON.parse(http.responseText);
+      for(var i = 0; i < options.length; i++) {
+          var opt = options[i];
+          var el = document.createElement("option");
+          el.textContent = opt;
+          el.value = opt;
+          select.appendChild(el);
+      }
+    }
+  }
+  http.send();
+
+  function submit() {
+    var time = 0
+    var input = document.getElementById("sentence").value;
+    var modelSelector = document.getElementById("selectModel");
+    var model = modelSelector.options[modelSelector.selectedIndex].value
+    console.log("submit!!", input, model)
+    var http = new XMLHttpRequest();
+    var url = "../?language="+model;
+    http.open("POST", url, true);
+    http.setRequestHeader("Content-type", "text/plain");
+    http.onreadystatechange = function() {
+    if(http.readyState == 4 && http.status == 200) {
+      timediff = new Date().getTime()-time;
+      var result = JSON.parse(http.responseText)
+      document.getElementById("result").innerHTML = '<pre>'+JSON.stringify(result, null, 2)+'</pre><br/>time: '+timediff+'ms'
+      }
+    }
+    time = new Date().getTime()
+    http.send(input);
+
+  }
+  </script>
+</head>
+<body>
+  <div style="text-align: center">
+    Model: <select id="selectModel"></select>
+    Line separated sentences: <textarea rows="4" cols="50" id="sentence"></textarea>
+    <input type="button" value="Submit" onclick="submit()">
+    <div id="result" style="text-align: left"></div>
+  </div>
+</body>
