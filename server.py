@@ -20,7 +20,6 @@ def index():
   if not data:
       return Response(status=500, response="error")
 
-  print("got something: '%s'" % data)
   result = pool.apply(parse_sentences, [data, request.args])
 
   return Response(
