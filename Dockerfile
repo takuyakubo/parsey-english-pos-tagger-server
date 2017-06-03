@@ -14,4 +14,8 @@ ADD . /opt/parsefaceserver/
 
 WORKDIR /opt/tensorflow
 
-CMD python /opt/parsefaceserver/server.py
+RUN apt-get update && apt-get install -y python3 && apt-get install -y python3-pip && pip3 install flask gunicorn
+
+ENV PARSEY_MODELS Spanish
+
+CMD gunicorn -b 0.0.0.0:8000 -w 4 -t 300 --pythonpath /opt/ parsefaceserver.server:app

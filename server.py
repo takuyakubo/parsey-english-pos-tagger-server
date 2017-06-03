@@ -6,7 +6,7 @@
 import os
 from flask import Flask, request, Response
 from multiprocessing import Pool
-from parser import parse_sentences, MODELS
+from .parser import parse_sentences, MODELS
 import json
 
 app = Flask(__name__)
@@ -20,7 +20,7 @@ def index():
   if not data:
       return Response(status=500, response="error")
 
-  result = pool.apply(parse_sentences, [data, request.args])
+  result = list(pool.apply(parse_sentences, [data, request.args]))
 
   return Response(
     status=200,
