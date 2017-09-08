@@ -1,21 +1,17 @@
-FROM andersrye/syntaxnet-forever
+FROM tensorflow/syntaxnet
 
-RUN pip install flask
+ENV PARSEY_MODELS Spanish-AnCora
 
-WORKDIR /opt/tensorflow/models/syntaxnet/syntaxnet/models/parsey_universal
+RUN pip install Flask
 
-COPY download_models.sh .
-RUN ./download_models.sh
-#RUN curl http://download.tensorflow.org/models/parsey_universal/Norwegian.zip -o Norwegian.zip && unzip Norwegian.zip && rm Norwegian.zip
-#RUN curl http://download.tensorflow.org/models/parsey_universal/English.zip -o English.zip && unzip English.zip && rm English.zip
+RUN cd /opt/tensorflow/syntaxnet/syntaxnet/models/parsey_universal && \
+		curl http://download.tensorflow.org/models/parsey_universal/$PARSEY_MODELS.zip -o $PARSEY_MODELS.zip && \
+		unzip $PARSEY_MODELS.zip && \
+		rm $PARSEY_MODELS.zip
+ADD server.py /opt/tensorflow/syntaxnet
+ADD parser.py /opt/tensorflow/syntaxnet
 
-#RUN git clone https://github.com/JoshData/parsey-mcparseface-server.git /opt/parsefaceserver
-ADD . /opt/parsefaceserver/
+WORKDIR /opt/tensorflow/syntaxnet
 
-WORKDIR /opt/tensorflow
 
-RUN apt-get update && apt-get install -y python3 && apt-get install -y python3-pip && pip3 install flask gunicorn
-
-ENV PARSEY_MODELS Spanish
-
-CMD gunicorn -b 0.0.0.0:8000 -w 4 -t 300 --pythonpath /opt/ parsefaceserver.server:app
+CMD /opt/tensorflow/syntaxnet/server.py
