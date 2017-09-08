@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from flask import Flask, request, Response
 from multiprocessing import Pool
-from parser import parse_sentences, MODELS
+from parser import parse_sentences
 import json
 
 app = Flask(__name__)
@@ -19,15 +19,6 @@ def index():
     return Response(
         status=200,
         response=json.dumps(result),
-        content_type="application/json")
-
-
-@app.route('/available-models')
-def available_models():
-    print("Available models? %s" % MODELS)
-    return Response(
-        status=200,
-        response=json.dumps(MODELS),
         content_type="application/json")
 
 

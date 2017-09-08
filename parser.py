@@ -54,7 +54,8 @@ def make_tree(split_tokens, sentence):
 
 def conll_to_dict(conll):
     conll_list = conll.strip().split("\n\n")
-    return map(split_tokens, conll_list)
+    sentences = map(split_tokens, conll_list)
+    return [{w['id']:w for w in sentence} for sentence in sentences]
 
 
 def open_parser_eval(args):
