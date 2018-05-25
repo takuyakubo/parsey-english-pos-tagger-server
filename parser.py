@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from __future__ import print_function
+import sys
 
 from collections import OrderedDict
 import subprocess
@@ -8,6 +9,7 @@ import os
 ROOT_DIR = '/opt/tensorflow/syntaxnet'
 PARSER_EVAL = 'bazel-bin/syntaxnet/parser_eval'
 MODELS_DIR = 'syntaxnet/models/parsey_universal/'
+MODEL_DIR = 'syntaxnet/models/parsey_mcparseface'
 CONTEXT = 'syntaxnet/models/parsey_universal/context.pbtxt'
 
 
@@ -85,33 +87,118 @@ def send_input(process, input_str, num_lines):
 
 
 def create_pipeline(model):
-    model_dir = MODELS_DIR + model
+    # model_dir = MODELS_DIR + model
+    # print(model_dir , file=sys.stderr)
+
+    # tokenizer = open_parser_eval([
+    #         "--input=stdin",
+    #         "--output=stdout-conll",
+    #         "--hidden_layer_sizes=64",
+    #         "--arg_prefix=brain_tagger",
+    #         "--graph_builder=structured",
+    #         "--task_context=%s" % CONTEXT,
+    #         "--resource_dir=%s" % model_dir,
+    #         "--model_path=%s/tokenizer-params" % model_dir,
+    #         "--slim_model",
+    #         "--batch_size=%s" % BATCH_SIZE,
+    #         #"--batch_size=1024",
+    #         #"--batch_size=1",
+    #         "--alsologtostderr"
+    # ])
+    # print(2, file=sys.stderr)
+
+    # Open the morpher
+    # morpher = open_parser_eval([
+    #     "--input=stdin",
+    #     "--output=stdout-conll",
+    #     "--hidden_layer_sizes=64",
+    #     "--arg_prefix=brain_morpher",
+    #     "--graph_builder=structured",
+    #     "--task_context=%s" % CONTEXT,
+    #     "--resource_dir=%s" % model_dir,
+    #     "--model_path=%s/morpher-params" % model_dir,
+    #     "--slim_model",
+    #     "--batch_size=%s" % BATCH_SIZE,
+    #     "--alsologtostderr"])
+
+    # print(3, file=sys.stderr)
+    # Open the part-of-speech tagger.
+    # pos_tagger = open_parser_eval([
+    #     "--input=stdin",
+    #     "--output=stdout-conll",
+    #     "--hidden_layer_sizes=64",
+    #     "--arg_prefix=brain_tagger",
+    #     "--graph_builder=structured",
+    #     "--task_context=%s" % CONTEXT,
+    #     "--resource_dir=%s" % model_dir,
+    #     "--model_path=%s/tagger-params" % model_dir,
+    #     "--slim_model",
+    #     "--batch_size=%s" % BATCH_SIZE,
+    #     "--alsologtostderr"])
     pos_tagger = open_parser_eval([
         "--input=stdin",
         "--output=stdout-conll",
         "--hidden_layer_sizes=64",
         "--arg_prefix=brain_tagger",
         "--graph_builder=structured",
-        "--task_context=%s" % CONTEXT,
-        "--resource_dir=%s" % model_dir,
-        "--model_path=%s/tagger-params" % model_dir,
+        "--task_context=%s/context.pbtxt" % MODEL_DIR,
+        "--model_path=%s/tagger-params" % MODEL_DIR,
         "--slim_model",
         "--batch_size=%s" % BATCH_SIZE,
         "--alsologtostderr"])
+    # print(4, file=sys.stderr)
+
+    # Open the syntactic dependency parser.
+    # dependency_parser = open_parser_eval([
+    #     "--input=stdin-conll",
+    #     "--output=stdout-conll",
+    #     "--hidden_layer_sizes=512,512",
+    #     "--arg_prefix=brain_parser",
+    #     "--graph_builder=structured",
+    #     "--task_context=%s" % CONTEXT,
+    #     "--resource_dir=%s" % model_dir,
+    #     "--model_path=%s/parser-params" % model_dir,
+    #     "--slim_model",
+    #     "--batch_size=%s" % BATCH_SIZE,
+    #     "--alsologtostderr"])
+    # print(5, file=sys.stderr)
+
     return [pos_tagger]
 
+
+# brain process pipelines:
 pipeline_ = create_pipeline('English')
 
 def parse_sentences(sentences, request_args):
+    # print(sentences, file=sys.stderr)
     sentences = sentences.strip() + '\n'
     num_lines = sentences.count('\n')
+    # print(sentences, 2, file=sys.stderr)
 
     pipeline = pipeline_
+    # print(sentences, 3, file=sys.stderr)
+
+    # print("TOKENIZER! %s, %s" % ( sentences, num_lines))
+    # print(send_input(pipeline[3], sentences, num_lines), file=sys.stderr)
+    # print(sentences, 4, file=sys.stderr)
+
+    # Do the morphing
+    # morphed = send_input(pipeline[0], sentences, num_lines)
+    # Do POS tagging.
+    # pos_tags = send_input(pipeline[1], morphed, num_lines)
     pos_tags = send_input(pipeline[0], sentences, num_lines)
+    # print(pos_tags, file=sys.stderr)
+    # Do syntax parsing.
+    # dependency_parse = send_input(pipeline[2], pos_tags, num_lines)
+
+    # print(dependency_parse)
+
+    # return [make_tree(st, sen) for sen, st in zip(sentences.split("\n"),
+    # split_tokens_list)]
+    # return conll_to_dict(dependency_parse)
     return conll_to_dict(pos_tags)
 
 
 if __name__ == "__main__":
     import pprint
-    import sys
     pprint.pprint(parse_sentences(sys.stdin.read().strip())["tree"])
